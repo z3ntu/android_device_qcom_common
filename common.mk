@@ -8,6 +8,8 @@ QSD8K_BOARD_PLATFORMS := qsd8k
 
 TARGET_USE_VENDOR_CAMERA_EXT := true
 
+ANDROID_COMPILE_WITH_JACK := false
+
 # Below projects/packages with LOCAL_MODULEs will be used by
 # PRODUCT_PACKAGES to build LOCAL_MODULEs that are tagged with
 # optional tag, which will not be available on target unless
@@ -123,7 +125,9 @@ CURL += curl
 
 #DASH
 DASH := libdashplayer
+DASH += libqcmediaplayer
 DASH += qcmediaplayer
+DASH += libextmedia_jni
 
 #DATA_OS
 DATA_OS := librmnetctl
@@ -143,6 +147,7 @@ FASTPOWERON := FastBoot
 #FM
 FM := qcom.fmradio
 FM += libqcomfm_jni
+FM += libfmjni
 
 #GPS
 GPS_HARDWARE := gps.conf
@@ -278,6 +283,7 @@ LIBCAMERA += libmmjpeg_interface
 LIBCAMERA += libqomx_core
 LIBCAMERA += mm-qcamera-app
 LIBCAMERA += camera_test
+LIBCAMERA += org.codeaurora.camera
 
 #LIBCOPYBIT
 LIBCOPYBIT := copybit.msm8660
@@ -405,6 +411,7 @@ MM_CORE += libOmxCore
 
 #MM_VIDEO
 MM_VIDEO := ast-mm-vdec-omx-test
+MM_VIDEO += libavenhancements
 MM_VIDEO += libdivxdrmdecrypt
 MM_VIDEO += liblasic
 MM_VIDEO += libOmxVdec
@@ -511,6 +518,9 @@ VT_JNI += libimscamera_jni
 #VT QTI permissions
 VT_QTI_PERMISSIONS := qti_permissions.xml
 
+#IMS SETTINGS
+IMS_SETTINGS := imssettings
+
 #CRDA
 CRDA := crda
 CRDA += regdbdump
@@ -554,6 +564,7 @@ PRODUCT_PACKAGES := \
     IM \
     VoiceDialer \
     FM2 \
+    FMRadio \
     FMRecord \
     VideoEditor
 
@@ -628,6 +639,7 @@ PRODUCT_PACKAGES += $(WPA)
 PRODUCT_PACKAGES += $(ZLIB)
 PRODUCT_PACKAGES += $(VT_JNI)
 PRODUCT_PACKAGES += $(VT_QTI_PERMISSIONS)
+PRODUCT_PACKAGES += $(IMS_SETTINGS)
 PRODUCT_PACKAGES += $(CRDA)
 PRODUCT_PACKAGES += $(WLAN)
 
@@ -656,7 +668,7 @@ PRODUCT_PACKAGES += vcard
 PRODUCT_PACKAGES += tcmiface
 
 #intialise PRODUCT_PACKAGES_DEBUG list for debug modules
-PRODUCT_PACKAGES_DEBUG :=
+PRODUCT_PACKAGES_DEBUG := init.qcom.testscripts.sh
 
 
 PRODUCT_COPY_FILES := \
@@ -697,9 +709,16 @@ PRODUCT_COPY_FILES += \
 PRODUCT_COPY_FILES += \
     frameworks/av/media/libstagefright/data/media_codecs_google_audio.xml:system/etc/media_codecs_google_audio.xml \
     frameworks/av/media/libstagefright/data/media_codecs_google_telephony.xml:system/etc/media_codecs_google_telephony.xml \
-    frameworks/av/media/libstagefright/data/media_codecs_google_video.xml:system/etc/media_codecs_google_video.xml \
     device/qcom/common/media/media_profiles.xml:system/etc/media_profiles.xml \
     device/qcom/common/media/media_codecs.xml:system/etc/media_codecs.xml
+
+ifeq ($(TARGET_DEVICE_NAME_LOW_END),true)
+PRODUCT_COPY_FILES += \
+    frameworks/av/media/libstagefright/data/media_codecs_google_video_le.xml:system/etc/media_codecs_google_video_le.xml
+else
+PRODUCT_COPY_FILES += \
+    frameworks/av/media/libstagefright/data/media_codecs_google_video.xml:system/etc/media_codecs_google_video.xml
+endif
 
 # enable overlays to use our version of
 # source/resources etc.
@@ -716,9 +735,7 @@ PRODUCT_PACKAGE_OVERLAYS += device/qcom/common/product/overlay
 -include frameworks/base/data/videos/VideoPackage1.mk
 
 #skip boot jars check if QCPATH not available
-ifeq ($(strip $(QCPATH)),)
 SKIP_BOOT_JARS_CHECK := true
-endif
 
 # For PRODUCT_COPY_FILES, the first instance takes precedence.
 # Since we want use QC specific files, we should inherit
@@ -731,12 +748,11 @@ PRODUCT_AAPT_CONFIG += hdpi mdpi
 
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.vendor.extension_library=libqti-perfd-client.so \
-    persist.radio.apm_sim_not_pwdn=1
+    persist.radio.apm_sim_not_pwdn=1 \
+    ro.frp.pst=/dev/block/bootdevice/by-name/config
 
 PRODUCT_PRIVATE_KEY := device/qcom/common/qcom.key
 
 $(call inherit-product, frameworks/native/build/phone-xhdpi-1024-dalvik-heap.mk)
 #$(call inherit-product, frameworks/base/data/fonts/fonts.mk)
 #$(call inherit-product, frameworks/base/data/keyboards/keyboards.mk)
-
-#PRODUCT_CHARACTERISTICS := nosdcard
